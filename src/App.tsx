@@ -7,6 +7,8 @@ import { Badge } from './components/ui/badge';
 import { useGithubData } from './hooks/useGithubData';
 import { useVariableFilter } from './hooks/useVariableFilter';
 import { formatCacheTimestamp } from './services/cacheService';
+import { VERSION } from './version';
+import { ExternalLink } from 'lucide-react';
 
 function App() {
   const { variables, stats, isLoading, loadingStatus, progress, error, refetch, lastFetchTime, isFromCache } = useGithubData();
@@ -18,12 +20,17 @@ function App() {
       <aside className="w-64 bg-white dark:bg-gray-800 border-r dark:border-gray-700 flex flex-col">
         {/* App Name */}
         <div className="p-6 border-b dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            Picorule Sentry
-          </h2>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-            Variable Catalog
-          </p>
+          <div className="flex items-center gap-3">
+            <img src="/favicon.ico" alt="Picorule Sentry" className="w-8 h-8" />
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                Picorule Sentry
+              </h2>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                Variable Catalog
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Navigation Items / Loading Status */}
@@ -51,11 +58,38 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="text-xs text-gray-500 dark:text-gray-500 italic">
-              Navigation items coming soon...
+            <div className="space-y-2">
+              <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                GitHub Repositories
+              </div>
+              <a
+                href={`https://github.com/${import.meta.env.VITE_GITHUB_OWNER || 'asaabey'}/${import.meta.env.VITE_GITHUB_REPO || 'tkc-picorules-rules'}/tree/${import.meta.env.VITE_GITHUB_BRANCH || 'master'}/${import.meta.env.VITE_GITHUB_RULEBLOCK_PATH || 'picodomain_rule_pack/rule_blocks'}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+              >
+                <ExternalLink size={16} />
+                <span>Ruleblocks</span>
+              </a>
+              <a
+                href={`https://github.com/${import.meta.env.VITE_GITHUB_OWNER || 'asaabey'}/${import.meta.env.VITE_GITHUB_REPO || 'tkc-picorules-rules'}/tree/${import.meta.env.VITE_GITHUB_BRANCH || 'master'}/${import.meta.env.VITE_GITHUB_TEMPLATE_PATH || 'picodomain_template_pack/template_blocks'}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+              >
+                <ExternalLink size={16} />
+                <span>Templates</span>
+              </a>
             </div>
           )}
         </nav>
+
+        {/* Sidebar Footer */}
+        <div className="border-t dark:border-gray-700 px-4 py-3">
+          <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+            Build {VERSION}
+          </p>
+        </div>
       </aside>
 
       {/* Main Content */}
