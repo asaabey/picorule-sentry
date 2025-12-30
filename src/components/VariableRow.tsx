@@ -10,6 +10,18 @@ interface VariableRowProps {
   rowRef?: (el: HTMLTableRowElement | null) => void;
 }
 
+/**
+ * Generate GitHub URL for a template file
+ */
+function getTemplateGithubUrl(templateName: string): string {
+  const owner = import.meta.env.VITE_GITHUB_OWNER || 'asaabey';
+  const repo = import.meta.env.VITE_GITHUB_REPO || 'tkc-picorules-rules';
+  const branch = import.meta.env.VITE_GITHUB_BRANCH || 'master';
+  const templatePath = import.meta.env.VITE_GITHUB_TEMPLATE_PATH || 'picodomain_template_pack/template_blocks';
+
+  return `https://github.com/${owner}/${repo}/blob/${branch}/${templatePath}/${templateName}`;
+}
+
 export function VariableRow({ variable: v, isHighlighted, onNavigateToDependency, rowRef }: VariableRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -45,14 +57,17 @@ export function VariableRow({ variable: v, isHighlighted, onNavigateToDependency
     return (
       <div className="flex flex-wrap gap-1">
         {templateList.map((template, idx) => (
-          <span
+          <a
             key={idx}
-            className="text-purple-600 dark:text-purple-400 text-xs font-mono"
-            title={template}
+            href={getTemplateGithubUrl(template)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300 hover:underline text-xs font-mono"
+            title={`View ${template} on GitHub`}
           >
             {template}
             {idx < templateList.length - 1 && ','}
-          </span>
+          </a>
         ))}
       </div>
     );
