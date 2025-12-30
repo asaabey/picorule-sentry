@@ -9,7 +9,7 @@ import { useVariableFilter } from './hooks/useVariableFilter';
 import { formatCacheTimestamp } from './services/cacheService';
 
 function App() {
-  const { variables, stats, isLoading, error, refetch, lastFetchTime, isFromCache } = useGithubData();
+  const { variables, stats, isLoading, loadingStatus, progress, error, refetch, lastFetchTime, isFromCache } = useGithubData();
   const { filters, setFilters, filteredVariables, ruleblockOptions } = useVariableFilter(variables);
 
   return (
@@ -26,11 +26,35 @@ function App() {
           </p>
         </div>
 
-        {/* Navigation Items (placeholder for future) */}
+        {/* Navigation Items / Loading Status */}
         <nav className="flex-1 p-4">
-          <div className="text-xs text-gray-500 dark:text-gray-500 italic">
-            Navigation items coming soon...
-          </div>
+          {isLoading ? (
+            <div className="space-y-3">
+              <div className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                Loading Progress
+              </div>
+              <div className="space-y-2">
+                <div className="text-xs text-gray-600 dark:text-gray-400">
+                  {loadingStatus}
+                </div>
+                {progress.total > 0 && (
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                    />
+                  </div>
+                )}
+                <div className="text-xs text-gray-500 dark:text-gray-500">
+                  {progress.total > 0 && `${progress.current} / ${progress.total} files`}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-gray-500 dark:text-gray-500 italic">
+              Navigation items coming soon...
+            </div>
+          )}
         </nav>
       </aside>
 

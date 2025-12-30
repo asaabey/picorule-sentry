@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import type { GitHubFileItem, GitHubRepoConfig } from '../types/github';
 import type { ParsedVariable, ParsingStats } from '../types/picorules';
-import { fetchFileList, fetchFileContentsBatch } from '../services/githubApi';
+import { fetchFileList, fetchFileContentsBatch, fetchTemplateFileList } from '../services/githubApi';
 import { extractVariablesFromContent, calculateStats } from '../services/parser';
 import { loadFromCache, saveToCache } from '../services/cacheService';
+import { parseTemplateFile, buildTemplateReferenceMap, type TemplateReference } from '../services/templateParser';
 
 interface UseGithubDataReturn {
   files: GitHubFileItem[];
@@ -11,6 +12,7 @@ interface UseGithubDataReturn {
   stats: ParsingStats;
   isLoading: boolean;
   progress: { current: number; total: number };
+  loadingStatus: string;
   error: string | null;
   refetch: () => Promise<void>;
   lastFetchTime: number | null;
@@ -28,10 +30,12 @@ export function useGithubData(
     conditionalCount: 0,
     withMetadataCount: 0,
     withoutMetadataCount: 0,
-    totalRuleblocks: 0
+    totalRuleblocks: 0,
+    withTemplateReferencesCount: 0
   });
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [loadingStatus, setLoadingStatus] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [lastFetchTime, setLastFetchTime] = useState<number | null>(null);
   const [isFromCache, setIsFromCache] = useState(false);
@@ -58,25 +62,69 @@ export function useGithubData(
     setIsFromCache(false);
 
     try {
-      // Fetch file list
+      // Fetch ruleblock file list
+      setLoadingStatus('Fetching ruleblock file list...');
       const fileList = await fetchFileList(config);
       setFiles(fileList);
-      setProgress({ current: 0, total: fileList.length });
 
-      // Fetch all file contents
+      // Fetch template file list
+      setLoadingStatus('Fetching template file list...');
+      const templateFileList = await fetchTemplateFileList(config);
+      const totalFiles = fileList.length + templateFileList.length;
+      setProgress({ current: 0, total: totalFiles });
+
+      // Fetch all ruleblock contents
+      setLoadingStatus(`Downloading ${fileList.length} ruleblocks...`);
       const contents = await fetchFileContentsBatch(
         fileList,
         config,
         5,
-        (current, total) => setProgress({ current, total })
+        (current) => {
+          setProgress({ current, total: totalFiles });
+          setLoadingStatus(`Downloading ruleblocks (${current}/${fileList.length})...`);
+        }
       );
 
-      // Parse all files
+      // Parse all ruleblock files
+      setLoadingStatus('Parsing ruleblocks...');
       const allVariables: ParsedVariable[] = [];
       contents.forEach((content, filename) => {
         const ruleblockName = filename.replace('.prb', '');
         const vars = extractVariablesFromContent(content, ruleblockName);
         allVariables.push(...vars);
+      });
+
+      // Fetch all template contents
+      setLoadingStatus(`Downloading ${templateFileList.length} templates...`);
+      const templateContents = await fetchFileContentsBatch(
+        templateFileList,
+        config,
+        5,
+        (current) => {
+          const offset = fileList.length;
+          setProgress({ current: offset + current, total: totalFiles });
+          setLoadingStatus(`Downloading templates (${current}/${templateFileList.length})...`);
+        }
+      );
+
+      // Parse all template files for variable references
+      setLoadingStatus('Parsing templates...');
+      const templateReferences: TemplateReference[] = [];
+      templateContents.forEach((content, filename) => {
+        const templateRef = parseTemplateFile(content, filename);
+        templateReferences.push(templateRef);
+      });
+
+      // Build reverse map: variable -> templates
+      setLoadingStatus('Building template reference map...');
+      const templateMap = buildTemplateReferenceMap(templateReferences);
+
+      // Join template references with variables
+      setLoadingStatus('Joining template references with variables...');
+      allVariables.forEach(variable => {
+        const key = `${variable.ruleblock}.${variable.variable}`;
+        const templates = templateMap.get(key) || [];
+        variable.referenced_in_templates = templates.join(',');
       });
 
       const calculatedStats = calculateStats(allVariables);
@@ -85,14 +133,17 @@ export function useGithubData(
       setStats(calculatedStats);
 
       // Save to cache
+      setLoadingStatus('Saving to cache...');
       const timestamp = Date.now();
       saveToCache(fileList, allVariables, calculatedStats);
       setLastFetchTime(timestamp);
+      setLoadingStatus('Complete!');
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsLoading(false);
+      setLoadingStatus('');
     }
   };
 
@@ -107,6 +158,7 @@ export function useGithubData(
     stats,
     isLoading,
     progress,
+    loadingStatus,
     error,
     refetch: () => fetchData(true), // Force refresh
     lastFetchTime,

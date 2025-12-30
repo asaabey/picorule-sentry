@@ -17,6 +17,7 @@ export interface ParsedVariable {
   is_bi_obj: string;
   eadv_attributes: string;
   depends_on: string;
+  referenced_in_templates: string; // Comma-separated list of template filenames
 }
 
 export interface RuleblockFile {
@@ -35,4 +36,5 @@ export interface ParsingStats {
   withMetadataCount: number;
   withoutMetadataCount: number;
   totalRuleblocks: number;
+  withTemplateReferencesCount: number;
 }

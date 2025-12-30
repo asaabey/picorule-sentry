@@ -9,8 +9,8 @@ interface StatsSummaryProps {
 export function StatsSummary({ stats, isLoading }: StatsSummaryProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4">
+        {Array.from({ length: 7 }).map((_, i) => (
           <Card key={i}>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -32,11 +32,12 @@ export function StatsSummary({ stats, isLoading }: StatsSummaryProps) {
     { label: 'Conditional', value: stats.conditionalCount },
     { label: 'With Metadata', value: stats.withMetadataCount },
     { label: 'Without Metadata', value: stats.withoutMetadataCount },
+    { label: 'In Templates', value: stats.withTemplateReferencesCount },
     { label: 'Ruleblocks', value: stats.totalRuleblocks },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-4">
       {statsItems.map((item) => (
         <Card key={item.label}>
           <CardHeader className="pb-3">

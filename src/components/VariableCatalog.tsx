@@ -97,6 +97,7 @@ export function VariableCatalog({ variables, allVariables, isLoading, onNavigate
             <TableHead>Label</TableHead>
             <TableHead>EADV Attributes</TableHead>
             <TableHead>Dependencies</TableHead>
+            <TableHead>Templates</TableHead>
             <TableHead>Reportable</TableHead>
           </TableRow>
         </TableHeader>

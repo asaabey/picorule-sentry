@@ -9,7 +9,7 @@ interface CachedData {
 }
 
 const CACHE_KEY = 'picorule-sentry-cache';
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2'; // Bumped to v2 for template references feature
 const CACHE_KEY_WITH_VERSION = `${CACHE_KEY}-${CACHE_VERSION}`;
 
 /**

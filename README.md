@@ -4,11 +4,13 @@ A React-based web application for extracting and analyzing variables from Picoru
 
 ## Features
 
-- **Live GitHub Integration**: Fetches `.prb` files directly from the GitHub repository
+- **Live GitHub Integration**: Fetches `.prb` files and `.txt` templates directly from the GitHub repository
+- **Template Reference Tracking**: Shows which Jinja2 templates reference each variable
 - **In-Memory Processing**: Parses all variables and holds the catalog in memory (no CSV files)
 - **Interactive Filtering**: Search and filter by ruleblock, statement type, metadata, and reportability
-- **Real-Time Statistics**: Displays summary statistics for functional/conditional statements
+- **Real-Time Statistics**: Displays summary statistics for functional/conditional statements and template usage
 - **Dependency Navigation**: Click on any dependency to jump to that variable's definition with visual highlighting (automatically switches ruleblock filters for cross-ruleblock references)
+- **Visual Loading Progress**: Sidebar shows detailed loading status with progress bar for ruleblocks and templates
 - **Smart Caching**: SessionStorage cache for instant page loads after first visit
 - **Responsive UI**: Modern interface built with React 19 and Tailwind CSS
 
@@ -47,13 +49,38 @@ npm run preview
 
 ## Configuration
 
-### GitHub Token (Optional)
+### Environment Variables
 
-For higher API rate limits (5000/hr instead of 60/hr), create a `.env.local` file:
+The app can be configured using environment variables. Copy `.env.example` to `.env` and customize:
+
+```bash
+cp .env.example .env
+```
+
+Available configuration options:
 
 ```env
+# GitHub Personal Access Token (optional, for higher rate limits)
+# Without token: 60 requests/hour
+# With token: 5000 requests/hour
 VITE_GITHUB_TOKEN=your_github_personal_access_token
+
+# Ruleblock Repository Configuration
+VITE_GITHUB_OWNER=asaabey
+VITE_GITHUB_REPO=tkc-picorules-rules
+VITE_GITHUB_BRANCH=master
+VITE_GITHUB_RULEBLOCK_PATH=picodomain_rule_pack/rule_blocks
+
+# Template Repository Configuration
+VITE_GITHUB_TEMPLATE_PATH=picodomain_template_pack/template_blocks
 ```
+
+**Default Values**: If not specified, the app uses the defaults shown above to connect to the main TKC Picorules repository.
+
+**Use Cases for Custom Configuration**:
+- Point to a fork of the repository
+- Use a different branch (e.g., `development`)
+- Test against a custom repository structure
 
 ## How It Works
 
@@ -68,42 +95,54 @@ The app uses **SessionStorage** for intelligent caching:
 
 ### Data Pipeline
 
-1. **Check Cache**: On load, checks SessionStorage for cached data
-2. **Fetch** (if needed): Downloads the list of `.prb` files from `picodomain_rule_pack/rule_blocks/`
-3. **Download**: File contents in parallel (5 concurrent requests with retry logic)
-4. **Parse**: Each file using regex patterns ported from Python:
+1. **Check Cache**: On load, checks SessionStorage for cached data (v2)
+2. **Fetch Ruleblocks**: Downloads the list of `.prb` files from `picodomain_rule_pack/rule_blocks/`
+3. **Download Ruleblocks**: Fetches file contents in parallel (5 concurrent requests with retry logic)
+4. **Parse Ruleblocks**: Each file using regex patterns ported from Python:
    - Extracts `#define_attribute()` metadata
    - Parses `#doc()` documentation
    - Identifies EADV attribute references
    - Tracks variable dependencies
    - Distinguishes functional (`=>`) vs conditional (`:`) statements
-5. **Cache**: Saves parsed data to SessionStorage for instant subsequent loads
-6. **Display**: All variables in an interactive table with filtering capabilities
+5. **Fetch Templates**: Downloads the list of `.txt` template files from `picodomain_template_pack/template_blocks/`
+6. **Download Templates**: Fetches template contents in parallel (5 concurrent requests)
+7. **Parse Templates**: Extracts variable references using Jinja2 patterns:
+   - `{% if ruleblock.variable %}` conditionals
+   - `{{ picoformat('ruleblock.variable') }}` formatting
+   - `{{ picodate('ruleblock.variable') }}` date formatting
+8. **Join Data**: Maps template references to variables (reverse lookup: variable → templates)
+9. **Cache**: Saves parsed data to SessionStorage (v2) for instant subsequent loads
+10. **Display**: All variables in an interactive table with filtering capabilities
 
 ## Project Structure
 
 ```
 picorule-sentry/
 ├── src/
-│   ├── components/       # React components
-│   │   ├── ui/          # shadcn/ui primitives
-│   │   ├── FileListPanel.tsx
+│   ├── components/          # React components
+│   │   ├── ui/             # shadcn/ui primitives
+│   │   ├── VariableCatalog.tsx
+│   │   ├── VariableRow.tsx
 │   │   ├── StatsSummary.tsx
 │   │   ├── FilterBar.tsx
-│   │   └── VariableCatalog.tsx
-│   ├── hooks/           # Custom React hooks
+│   │   └── ThemeToggle.tsx
+│   ├── hooks/              # Custom React hooks
 │   │   ├── useGithubData.ts
-│   │   └── useVariableFilter.ts
-│   ├── services/        # Core business logic
-│   │   ├── parser.ts    # Picorules parsing engine
-│   │   └── githubApi.ts # GitHub API integration
-│   ├── types/           # TypeScript definitions
+│   │   ├── useVariableFilter.ts
+│   │   └── useTheme.ts
+│   ├── services/           # Core business logic
+│   │   ├── parser.ts       # Picorules parsing engine
+│   │   ├── templateParser.ts # Jinja2 template parser
+│   │   ├── githubApi.ts    # GitHub API integration
+│   │   └── cacheService.ts # SessionStorage cache
+│   ├── types/              # TypeScript definitions
 │   │   ├── picorules.ts
 │   │   └── github.ts
-│   ├── lib/             # Utilities
+│   ├── lib/                # Utilities
 │   │   └── utils.ts
-│   ├── App.tsx          # Main application
-│   └── main.tsx         # Entry point
+│   ├── App.tsx             # Main application
+│   └── main.tsx            # Entry point
+├── .env.example            # Environment variables template
 ├── package.json
 ├── vite.config.ts
 ├── tailwind.config.js
@@ -117,19 +156,30 @@ This app provides the same functionality as `extract_variables.py` with these en
 | Feature | Python Script | Picorule Sentry |
 |---------|--------------|-----------------|
 | Data Source | Local files or GitHub | GitHub only (live) |
+| Template Analysis | Not supported | Full Jinja2 template parsing |
 | Output Format | CSV file | In-memory + interactive UI |
 | Filtering | Post-processing required | Real-time filtering |
-| Statistics | Console output | Live dashboard |
+| Statistics | Console output | Live dashboard with template stats |
+| Loading Feedback | Basic progress | Detailed status with progress bar |
 | Deployment | Requires Python environment | Static web app |
+| Template References | Not tracked | Shows which templates use each variable |
+
+## Recent Enhancements
+
+- ✅ **Template Reference Tracking**: Parses 218 template files and tracks variable usage
+- ✅ **Visual Loading Progress**: Sidebar shows detailed status for ruleblocks and templates
+- ✅ **Template Column**: Displays template references directly in the table
+- ✅ **Dark Mode**: Full dark mode support with theme toggle
+- ✅ **Environment Variables**: Configurable repository settings
 
 ## Future Enhancements
 
 - Dependency graph visualization
-- Export to CSV/JSON
+- Export to CSV/JSON with template references
 - Branch comparison mode
-- Dark mode support
 - Virtual scrolling for 1000+ variables
 - IndexedDB caching for offline support
+- Clickable template names to view template content
 
 ## License
 

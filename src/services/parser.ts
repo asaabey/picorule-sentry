@@ -195,7 +195,8 @@ export function extractVariablesFromContent(
         is_reportable: attributes.is_reportable || '',
         is_bi_obj: attributes.is_bi_obj || '',
         eadv_attributes: eadvAttrs,
-        depends_on: dependencies
+        depends_on: dependencies,
+        referenced_in_templates: ''
       });
       continue;
     }
@@ -222,7 +223,8 @@ export function extractVariablesFromContent(
         is_reportable: attributes.is_reportable || '',
         is_bi_obj: attributes.is_bi_obj || '',
         eadv_attributes: '',  // Conditional statements don't query EADV
-        depends_on: dependencies
+        depends_on: dependencies,
+        referenced_in_templates: ''
       });
     }
   }
@@ -242,6 +244,7 @@ export function calculateStats(
     conditionalCount: variables.filter(v => v.statement_type === 'conditional').length,
     withMetadataCount: variables.filter(v => v.label !== '').length,
     withoutMetadataCount: variables.filter(v => v.label === '').length,
-    totalRuleblocks: new Set(variables.map(v => v.ruleblock)).size
+    totalRuleblocks: new Set(variables.map(v => v.ruleblock)).size,
+    withTemplateReferencesCount: variables.filter(v => v.referenced_in_templates !== '').length
   };
 }

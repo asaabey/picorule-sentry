@@ -36,6 +36,28 @@ export function VariableRow({ variable: v, isHighlighted, onNavigateToDependency
     );
   };
 
+  // Render template references
+  const renderTemplateReferences = (templates: string) => {
+    if (!templates) return <span className="text-gray-400 text-xs">none</span>;
+
+    const templateList = templates.split(',').map(t => t.trim());
+
+    return (
+      <div className="flex flex-wrap gap-1">
+        {templateList.map((template, idx) => (
+          <span
+            key={idx}
+            className="text-purple-600 dark:text-purple-400 text-xs font-mono"
+            title={template}
+          >
+            {template}
+            {idx < templateList.length - 1 && ','}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <>
       <TableRow
@@ -73,6 +95,9 @@ export function VariableRow({ variable: v, isHighlighted, onNavigateToDependency
         <TableCell className="max-w-xs text-sm">
           {renderDependencies(v.depends_on)}
         </TableCell>
+        <TableCell className="max-w-xs text-sm">
+          {renderTemplateReferences(v.referenced_in_templates)}
+        </TableCell>
         <TableCell>
           {v.is_reportable === '1' ? (
             <Badge variant="outline" className="text-xs">Yes</Badge>
@@ -90,7 +115,7 @@ export function VariableRow({ variable: v, isHighlighted, onNavigateToDependency
               ? 'bg-blue-50 dark:bg-blue-950/50'
               : 'bg-amber-50 dark:bg-amber-950/50'
         } border-t-0`}>
-          <TableCell colSpan={7} className="py-3">
+          <TableCell colSpan={8} className="py-3">
             <div className="ml-8">
               <div className={`text-xs font-semibold mb-2 uppercase tracking-wide ${
                 v.statement_type === 'functional'

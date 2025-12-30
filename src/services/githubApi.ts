@@ -1,17 +1,25 @@
 import type { GitHubFileItem, GitHubRepoConfig } from '../types/github';
 
-const DEFAULT_CONFIG: GitHubRepoConfig = {
-  owner: 'asaabey',
-  repo: 'tkc-picorules-rules',
-  branch: 'master',
-  path: 'picodomain_rule_pack/rule_blocks'
-};
+/**
+ * Get default GitHub configuration from environment variables
+ */
+function getDefaultConfig(): GitHubRepoConfig {
+  return {
+    owner: import.meta.env.VITE_GITHUB_OWNER || 'asaabey',
+    repo: import.meta.env.VITE_GITHUB_REPO || 'tkc-picorules-rules',
+    branch: import.meta.env.VITE_GITHUB_BRANCH || 'master',
+    path: import.meta.env.VITE_GITHUB_RULEBLOCK_PATH || 'picodomain_rule_pack/rule_blocks'
+  };
+}
+
+const DEFAULT_CONFIG: GitHubRepoConfig = getDefaultConfig();
 
 /**
- * Fetch list of .prb files from GitHub repository
+ * Fetch list of files from GitHub repository with optional filter
  */
 export async function fetchFileList(
-  config: GitHubRepoConfig = DEFAULT_CONFIG
+  config: GitHubRepoConfig = DEFAULT_CONFIG,
+  fileExtension?: string
 ): Promise<GitHubFileItem[]> {
   const apiUrl = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/${config.path}?ref=${config.branch}`;
 
@@ -33,8 +41,9 @@ export async function fetchFileList(
 
   const data: GitHubFileItem[] = await response.json();
 
-  // Filter to only .prb files
-  return data.filter(item => item.name.endsWith('.prb'));
+  // Filter by extension if provided, default to .prb for backward compatibility
+  const extension = fileExtension || '.prb';
+  return data.filter(item => item.name.endsWith(extension));
 }
 
 /**
@@ -114,4 +123,20 @@ export async function fetchFileContentsBatch(
   await Promise.all(workers);
 
   return results;
+}
+
+/**
+ * Fetch list of .txt template files from GitHub repository
+ */
+export async function fetchTemplateFileList(
+  config: GitHubRepoConfig = DEFAULT_CONFIG
+): Promise<GitHubFileItem[]> {
+  const templatePath = import.meta.env.VITE_GITHUB_TEMPLATE_PATH || 'picodomain_template_pack/template_blocks';
+
+  const templateConfig: GitHubRepoConfig = {
+    ...config,
+    path: templatePath
+  };
+
+  return fetchFileList(templateConfig, '.txt');
 }
